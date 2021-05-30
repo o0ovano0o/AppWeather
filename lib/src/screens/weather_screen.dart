@@ -7,11 +7,12 @@ import 'package:flutter_weather/src/widgets/weather_widget.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:http/http.dart' as http;
 import '../bloc/weather_bloc.dart';
-
+import 'dart:async';
+import 'dart:convert';
 enum OptionsMenu { changeCity, settings }
-
+String name;
 class WeatherScreen extends StatefulWidget {
   @override
   _WeatherScreenState createState() => _WeatherScreenState();
@@ -152,6 +153,13 @@ class _WeatherScreenState extends State<WeatherScreen>
           ),
         ));
   }
+  void onDataChange(val) {
+    setState(() {
+      this._cityName = val;
+    });
+  }
+
+
 
   void _showCityChangeDialog() {
     showDialog(
@@ -176,30 +184,26 @@ class _WeatherScreenState extends State<WeatherScreen>
                 },
               ),
             ],
-            content: TextField(
-              autofocus: true,
-              onChanged: (text) {
-                _cityName = text;
-              },
-              decoration: InputDecoration(
-                  hintText: 'Name of your city',
-                  hintStyle: TextStyle(color: Colors.black),
-                  suffixIcon: GestureDetector(
-                    onTap: () {
-                      _fetchWeatherWithLocation().catchError((error) {
-                        _fetchWeatherWithCity();
-                      });
-                      Navigator.of(context).pop();
-                    },
-                    child: Icon(
-                      Icons.my_location,
-                      color: Colors.black,
-                      size: 16,
-                    ),
-                  )),
-              style: TextStyle(color: Colors.black),
-              cursorColor: Colors.black,
+            content: Container(
+              width: double.maxFinite,
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Expanded(
+                        child: ListView(
+                            shrinkWrap: true,
+                            children: <Widget>[
+
+                              Center(
+                                child: AutocompleteBasicExample( callback: (val) => onDataChange(val)),
+                              ),
+                            ]
+                        )
+                    )
+                  ]
+              ),
             ),
+
           );
         });
   }
@@ -216,6 +220,7 @@ class _WeatherScreenState extends State<WeatherScreen>
   }
 
   _fetchWeatherWithCity() {
+    this._cityName=name;
     _weatherBloc.add(FetchWeather(cityName: _cityName));
   }
 
@@ -250,7 +255,6 @@ class _WeatherScreenState extends State<WeatherScreen>
         break;
     }
   }
-
   void _showLocationDeniedDialog() {
     showDialog(
         context: context,
@@ -279,3 +283,41 @@ class _WeatherScreenState extends State<WeatherScreen>
         });
   }
 }
+
+
+
+class AutocompleteBasicExample extends StatelessWidget {
+  AutocompleteBasicExample({Key key,this.callback}) : super(key: key);
+  final callback;
+
+  static const List<String> _kOptions = <String>[
+    'italy',
+    'us',
+    'korean',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text == '') {
+          return const Iterable<String>.empty();
+        }
+        else {
+          return _kOptions.where((String option) {
+            return option.contains(
+                textEditingValue.text.toLowerCase()
+            );
+          });
+        }
+      },
+      onSelected: (String selection) {
+        name=selection;
+        print('You just selected $selection');
+      },
+    );
+  }
+}
+
+
